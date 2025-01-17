@@ -1,0 +1,38 @@
+name: Docker API Test
+
+on: [push, pull_request]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Build Docker Image
+      run: docker build -t infratools .
+
+    - name: Run Docker Container
+      run: docker run -d --name infratools -p 5000:5000 infratools
+
+    - name: Wait for Container Initialization
+      run: sleep 10
+
+    - name: Check Port Accessibility
+      run: |
+        if ! nc -z localhost 5000; then
+          echo "Port 5000 is not accessible!"
+          exit 1
+        fi
+
+    - name: Test API Response
+      run: |
+        response=$(curl -s http://localhost:5000/test)
+        expected_response="API OK"
+        if [[ "$response" == *"$expected_response"* ]]; then
+          echo "API is working as expected!"
+        else
+          echo "API test failed! Expected '$expected_response', but got '$response'"
+          exit 1
+        fi
